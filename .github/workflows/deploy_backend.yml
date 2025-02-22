@@ -1,0 +1,66 @@
+name: Deploy gutter backend
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy_backend.yml"
+  workflow_dispatch:
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Add SSH Go Module Private Key
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          ssh-add - <<< "${{ secrets.GO_MODULE_PRIVATE_KEY }}"
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> $GITHUB_ENV
+
+      - name: Setup access for private go modules
+        run: |
+          git config --global url."ssh://git@github.com/".insteadOf https://github.com/
+
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+
+      - name: "Set up Go"
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache-dependency-path: backend/go.sum
+
+      - name: "Run tests"
+        run: cd ./backend/ && go test ./...
+
+      - name: "Build for Linux"
+        if: success()
+        run: cd ./backend/ && go build -o gutter-backend ./cmd/gutter-backend
+
+      - name: "Upload binary to server"
+        if: success()
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          port: ${{ secrets.SSH_PORT }}
+          key: ${{ secrets.SSH_KEY }}
+          source: ./backend/gutter-backend
+          target: ${{ secrets.SSH_DIST_DEST }}
+
+  deploy:
+    runs-on: self-hosted
+    needs: test-and-build
+    steps:
+      - name: "Restart the daemon with the new binary and env variables"
+        run: |
+          cd ${{ secrets.SSH_DIST_DEST }}
+          ls -al
+          GIN_MODE="${{ vars.GIN_MODE }}" LOG_LEVEL="${{ vars.LOG_LEVEL}}" LOKI_ENDPOINT="${{ secrets.LOKI_ENDPOINT }}" LOKI_USERNAME="${{ secrets.LOKI_USERNAME }}" LOKI_PASSWORD="${{ secrets.LOKI_PASSWORD }}" APP_NAME="${{ vars.APP_NAME }}" APP_PORT="${{ vars.APP_PORT }}" PB_URL="${{ secrets.PB_URL }}" PB_USERNAME="${{ secrets.PB_USERNAME }}" PB_PASSWORD="${{ secrets.PB_PASSWORD }}" JWT_SECRET="${{ secrets.JWT_SECRET }}" EXPO_ACCESS_TOKEN="${{ secrets.EXPO_ACCESS_TOKEN }}" AES_KEY=${{ secrets.AES_KEY }} pm2 restart "${{ vars.PM2_NAME }}" --update-env
