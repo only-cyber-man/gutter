@@ -8,7 +8,7 @@ export default function Page() {
 			<Stack.Screen
 				name="account"
 				options={{
-					title: "Account",
+					title: "account",
 				}}
 			/>
 			<AccountBox />

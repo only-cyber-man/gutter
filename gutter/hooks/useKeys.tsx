@@ -1,43 +1,26 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { ZustandSecureStorage } from "./ZustandSecureStorage";
-import { generateKeyPairSync, publicEncrypt, privateDecrypt } from "crypto";
-import { Buffer } from "buffer";
-// Generate RSA key pair in base64 format
-export const generateKeyPairRSA = (): KeyPair => {
-	const { publicKey, privateKey } = generateKeyPairSync("rsa", {
-		modulusLength: 2048,
-		publicKeyEncoding: { type: "spki", format: "pem" },
-		privateKeyEncoding: { type: "pkcs1", format: "pem" },
-	});
+import { RSA } from "react-native-rsa-native";
+import { ZustandStorage } from "./ZustandStorage";
 
-	return {
-		public: Buffer.from(publicKey).toString("base64"),
-		private: Buffer.from(privateKey).toString("base64"),
-	};
+// Generate RSA key pair in base64 format
+export const generateKeyPairRSA = async (): Promise<KeyPair> => {
+	return await RSA.generateKeys(2048);
 };
 
 // Encrypt a message using the recipient's public key
-export const encryptMessageRSA = (message: string, recipientPubKey: string) => {
-	const buffer = Buffer.from(message, "utf-8");
-	const publicKeyBuffer = Buffer.from(recipientPubKey, "base64").toString(
-		"utf-8",
-	);
-	const encrypted = publicEncrypt(publicKeyBuffer, buffer);
-	return encrypted.toString("base64");
+export const encryptMessageRSA = async (
+	message: string,
+	recipientPubKey: string,
+): Promise<string> => {
+	return await RSA.encrypt(message, recipientPubKey);
 };
 
-// Decrypt a message using the recipient's private key
-export const decryptMessageRSA = (
+export const decryptMessageRSA = async (
 	encrypted: string,
 	recipientPrivKey: string,
-) => {
-	const buffer = Buffer.from(encrypted, "base64");
-	const privateKeyBuffer = Buffer.from(recipientPrivKey, "base64").toString(
-		"utf-8",
-	);
-	const decrypted = privateDecrypt(privateKeyBuffer, buffer);
-	return decrypted.toString("utf-8");
+): Promise<string> => {
+	return await RSA.decrypt(encrypted, recipientPrivKey);
 };
 
 export interface KeyPair {
@@ -46,9 +29,10 @@ export interface KeyPair {
 }
 
 export interface KeysStore {
-	user: KeyPair;
+	user: KeyPair | null;
 	isLoading: boolean;
 	chats: KeyPair[];
+	createNewUserKeypair: () => Promise<KeyPair>;
 }
 
 export const useKeys = create(
@@ -56,11 +40,18 @@ export const useKeys = create(
 		(set, get) => ({
 			chats: [],
 			isLoading: false,
-			user: generateKeyPairRSA(),
+			user: null,
+			createNewUserKeypair: async () => {
+				const newPair = await generateKeyPairRSA();
+				set({
+					user: newPair,
+				});
+				return newPair;
+			},
 		}),
 		{
 			name: "gutter-keys-store",
-			storage: new ZustandSecureStorage(),
+			storage: new ZustandStorage(),
 		},
 	),
 );

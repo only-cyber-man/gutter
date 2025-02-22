@@ -1,9 +1,9 @@
 import { PersistStorage, StorageValue } from "zustand/middleware";
-import * as SecureStore from "expo-secure-store";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export class ZustandSecureStorage<T> implements PersistStorage<T> {
+export class ZustandStorage<T> implements PersistStorage<T> {
 	getItem = async (name: string): Promise<StorageValue<T> | null> => {
-		const result = await SecureStore.getItemAsync(name);
+		const result = await AsyncStorage.getItem(name);
 		if (!result) {
 			return null;
 		}
@@ -15,12 +15,9 @@ export class ZustandSecureStorage<T> implements PersistStorage<T> {
 		name: string,
 		value: StorageValue<T>,
 	): Promise<unknown> => {
-		return await SecureStore.setItemAsync(
-			name,
-			JSON.stringify(value.state),
-		);
+		return await AsyncStorage.setItem(name, JSON.stringify(value.state));
 	};
 	removeItem = (name: string): Promise<unknown> => {
-		return SecureStore.deleteItemAsync(name);
+		return AsyncStorage.removeItem(name);
 	};
 }

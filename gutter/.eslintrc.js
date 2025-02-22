@@ -2,7 +2,7 @@
 module.exports = {
 	extends: ["expo", "prettier"],
 	plugins: ["prettier"],
-	ignorePatterns: ["/dist/*", "/ios/*", "expo-env.d.ts"],
+	ignorePatterns: ["/dist/*", "/ios/*", "expo-env.d.ts", "/android/*"],
 	rules: {
 		"react-hooks/exhaustive-deps": "off",
 		"react-hooks/rules-of-hooks": "off",

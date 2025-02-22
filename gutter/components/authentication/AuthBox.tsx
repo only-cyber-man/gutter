@@ -5,7 +5,7 @@ import { ActivityIndicator } from "react-native";
 import { useUser } from "@/hooks/useUser";
 
 export const AuthBox = () => {
-	const { user } = useKeys();
+	const { createNewUserKeypair } = useKeys();
 	const { login, register, isLoading } = useUser();
 	const [username, setUsername] = useState("");
 	const [password, setPassword] = useState("");
@@ -34,15 +34,20 @@ export const AuthBox = () => {
 						login(username, password);
 					}}
 				>
-					<ButtonText>Login</ButtonText>
+					<ButtonText>login</ButtonText>
 				</Button>
 				<Button
 					disabled={isLoading}
-					onPress={() => {
-						register(username, password, user.public);
+					onPress={async () => {
+						try {
+							const keypair = await createNewUserKeypair();
+							await register(username, password, keypair.public);
+						} catch (err) {
+							console.log("err", err);
+						}
 					}}
 				>
-					<ButtonText>Register</ButtonText>
+					<ButtonText>register</ButtonText>
 				</Button>
 			</XStack>
 			{isLoading && (

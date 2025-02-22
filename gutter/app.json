@@ -38,6 +38,15 @@
 		],
 		"experiments": {
 			"typedRoutes": true
-		}
+		},
+		"extra": {
+			"router": {
+				"origin": false
+			},
+			"eas": {
+				"projectId": "3329aa8c-24b2-43f8-a202-f0dd1a918c11"
+			}
+		},
+		"owner": "makefriends"
 	}
 }

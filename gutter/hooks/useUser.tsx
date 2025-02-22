@@ -1,9 +1,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { ZustandSecureStorage } from "./ZustandSecureStorage";
 import { Alert } from "react-native";
 import { getNotificationsToken } from "@/api/notifications";
 import { baseUrl, buildHeaders } from "@/constants/api";
+import { ZustandStorage } from "./ZustandStorage";
 
 export interface User {
 	id: string;
@@ -132,8 +132,8 @@ export const useUser = create(
 			},
 		}),
 		{
-			name: "kup-mi-user-store",
-			storage: new ZustandSecureStorage(),
+			name: "gutter-user-store",
+			storage: new ZustandStorage(),
 		},
 	),
 );

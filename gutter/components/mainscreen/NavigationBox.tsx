@@ -79,9 +79,9 @@ export const NavigationBox = () => {
 		>
 			<XStack style={{ flex: 1 }}>
 				<Kafelek
-					name="TBD"
+					name="keys"
 					onPress={() => {
-						router.navigate("/tbd");
+						router.navigate("/keys");
 					}}
 					outerStyle={{
 						marginHorizontal: 5,
@@ -94,9 +94,9 @@ export const NavigationBox = () => {
 					}}
 				/>
 				<Kafelek
-					name="TBD"
+					name="chats"
 					onPress={() => {
-						router.navigate("/tbd");
+						router.navigate("/chats");
 					}}
 					outerStyle={{
 						marginRight: 5,
@@ -111,7 +111,7 @@ export const NavigationBox = () => {
 			</XStack>
 			<XStack style={{ flex: 1 }}>
 				<Kafelek
-					name="Friendships"
+					name="friendships"
 					onPress={() => {
 						router.navigate("/friendships");
 					}}
@@ -126,7 +126,7 @@ export const NavigationBox = () => {
 					}}
 				/>
 				<Kafelek
-					name="Account"
+					name="account"
 					onPress={() => {
 						router.navigate("/account");
 					}}

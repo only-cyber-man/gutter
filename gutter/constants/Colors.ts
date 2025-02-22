@@ -25,7 +25,7 @@ export const Colors = {
 	light: {
 		text: "#000",
 		background: "#fff",
-		buttonBackground: ColorValues.Blue,
+		buttonBackground: ColorValues.DarkBlue,
 		buttonText: ColorValues.Sky,
 		tint: tintColorLight,
 		tabIconDefault: "#ccc",
@@ -34,7 +34,7 @@ export const Colors = {
 	dark: {
 		text: "#fff",
 		background: "#000",
-		buttonBackground: ColorValues.Blue,
+		buttonBackground: ColorValues.DarkBlue,
 		buttonText: "#000",
 		tint: tintColorDark,
 		tabIconDefault: "#ccc",

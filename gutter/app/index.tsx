@@ -10,12 +10,12 @@ export default function Page() {
 
 	const getTitle = () => {
 		if (!isLoggedIn()) {
-			return "Register or log in";
+			return "register or log in";
 		}
 		if (routeSegments.length > 0) {
-			return "Main screen";
+			return "main screen";
 		}
-		return `Welcome ${user?.username}!`;
+		return `welcome ${user?.username}!`;
 	};
 
 	return (
