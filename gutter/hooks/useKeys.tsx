@@ -31,14 +31,14 @@ export interface KeyPair {
 export interface KeysStore {
 	user: KeyPair | null;
 	isLoading: boolean;
-	chats: KeyPair[];
+	chats: Record<string, KeyPair[]>;
 	createNewUserKeypair: () => Promise<KeyPair>;
 }
 
 export const useKeys = create(
 	persist<KeysStore>(
 		(set, get) => ({
-			chats: [],
+			chats: {},
 			isLoading: false,
 			user: null,
 			createNewUserKeypair: async () => {
