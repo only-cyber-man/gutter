@@ -13,7 +13,7 @@ import (
 
 func (c *Client) AddRoutes_ApiFriendships() {
 	slog.Info("registering friendships api")
-	c.RestClient.AddRoute("GET", "/api/find-user", c.WithAuth(), func(ctx *gin.Context) {
+	c.RestClient.AddRoute("GET", "/api/find-user", func(ctx *gin.Context) {
 		username := ctx.Query("username")
 		output, err := c.UserService.GetOneByUsername(username)
 		rest.FailOrReturn(ctx, output, err)
