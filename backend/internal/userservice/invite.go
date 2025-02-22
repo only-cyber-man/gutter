@@ -24,7 +24,7 @@ var (
 	ErrCantInviteSelf           = errors.New("did you really try to invite yourself..? xD")
 )
 
-func (us *Client) Invite(requester *domain.User, input *InviteDto) error {
+func (us *Client) Invite(requester *domain.User, input *InviteDto) (*domain.Chat, error) {
 	users, err := us.users.GetFullList(&pocketbase.GetFullListInput[domain.User]{
 		Filter: pocketbase.BuildFilter(
 			"username = {:username}",
@@ -39,7 +39,7 @@ func (us *Client) Invite(requester *domain.User, input *InviteDto) error {
 			"err", err,
 			"tried to invite", input.Username,
 		)
-		return ErrSomethingWentWrongInvite
+		return nil, ErrSomethingWentWrongInvite
 	}
 	if len(users) == 0 {
 		slog.Warn(
@@ -47,11 +47,11 @@ func (us *Client) Invite(requester *domain.User, input *InviteDto) error {
 			"requester", requester.Username,
 			"target", input.Username,
 		)
-		return ErrUserNotFound
+		return nil, ErrUserNotFound
 	}
 	invitee := users[0]
 	if invitee.Id == requester.Id {
-		return ErrCantInviteSelf
+		return nil, ErrCantInviteSelf
 	}
 	friendships, err := us.friendships.GetFullList(&pocketbase.GetFullListInput[domain.Friendship]{
 		Filter: pocketbase.BuildFilter(
@@ -69,15 +69,15 @@ func (us *Client) Invite(requester *domain.User, input *InviteDto) error {
 			"requester", requester.Username,
 			"invitee", invitee.Username,
 		)
-		return ErrSomethingWentWrongInvite
+		return nil, ErrSomethingWentWrongInvite
 	}
 	if len(friendships) > 0 {
 		friendshipRecord := friendships[0]
 		switch friendshipRecord.Status {
 		case domain.FriendsStatus:
-			return ErrUserAlreadyFriends
+			return nil, ErrUserAlreadyFriends
 		case domain.FriendshipStatusRequestSent:
-			return ErrUserAlreadyInvited
+			return nil, ErrUserAlreadyInvited
 		default:
 			slog.Error(
 				"this shouldn't be possible. friendship record status is not defined",
@@ -85,7 +85,7 @@ func (us *Client) Invite(requester *domain.User, input *InviteDto) error {
 				"requester", requester.Username,
 				"invitee", invitee.Username,
 			)
-			return ErrSomethingWentWrongInvite
+			return nil, ErrSomethingWentWrongInvite
 		}
 	}
 	_, err = us.friendships.CreateOne(&pocketbase.CreateOneInput[domain.Friendship]{
@@ -102,7 +102,7 @@ func (us *Client) Invite(requester *domain.User, input *InviteDto) error {
 			"requester", requester.Username,
 			"invitee", invitee.Username,
 		)
-		return ErrSomethingWentWrongInvite
+		return nil, ErrSomethingWentWrongInvite
 	}
 	chat, err := us.chats.CreateOne(&pocketbase.CreateOneInput[domain.Chat]{
 		Data: domain.Chat{
@@ -118,7 +118,7 @@ func (us *Client) Invite(requester *domain.User, input *InviteDto) error {
 			"requester", requester.Username,
 			"invitee", invitee.Username,
 		)
-		return ErrSomethingWentWrongInvite
+		return nil, ErrSomethingWentWrongInvite
 	}
 	_, err = us.keyExchanges.CreateOne(&pocketbase.CreateOneInput[domain.KeyExchange]{
 		Data: domain.KeyExchange{
@@ -136,7 +136,7 @@ func (us *Client) Invite(requester *domain.User, input *InviteDto) error {
 			"requester", requester.Username,
 			"invitee", invitee.Username,
 		)
-		return ErrSomethingWentWrongInvite
+		return nil, ErrSomethingWentWrongInvite
 	}
 
 	// here create a new expo push token to the invitee
@@ -163,5 +163,5 @@ func (us *Client) Invite(requester *domain.User, input *InviteDto) error {
 		}
 	}
 
-	return nil
+	return chat, nil
 }

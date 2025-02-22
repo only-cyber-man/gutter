@@ -35,8 +35,8 @@ func (c *Client) AddRoutes_ApiFriendships() {
 			})
 			return
 		}
-		err = c.UserService.Invite(user.(*domain.User), &dto)
-		rest.FailOrReturn(ctx, nil, err, "if the user exists, an invite has been sent")
+		chat, err := c.UserService.Invite(user.(*domain.User), &dto)
+		rest.FailOrReturn(ctx, chat, err, "if the user exists, an invite has been sent")
 	})
 	c.RestClient.AddRoute("POST", "/api/friendships/answer", c.WithAuth(), func(ctx *gin.Context) {
 		user, _ := ctx.Get("user")
