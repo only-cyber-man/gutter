@@ -13,13 +13,17 @@ import (
 
 func (c *Client) AddRoutes_ApiFriendships() {
 	slog.Info("registering friendships api")
+	c.RestClient.AddRoute("GET", "/api/find-user", c.WithAuth(), func(ctx *gin.Context) {
+		username := ctx.Query("username")
+		output, err := c.UserService.GetOneByUsername(username)
+		rest.FailOrReturn(ctx, output, err)
+	})
 	c.RestClient.AddRoute("GET", "/api/friendships", c.WithAuth(), func(ctx *gin.Context) {
 		user, _ := ctx.Get("user")
 		output, err := c.UserService.GetFriendships(user.(*domain.User))
 		rest.FailOrReturn(ctx, output, err)
 	})
 	c.RestClient.AddRoute("POST", "/api/friendships/invite", c.WithAuth(), func(ctx *gin.Context) {
-		// TODO: add the gu_key_exchanges collection record
 		user, _ := ctx.Get("user")
 		dto := userservice.InviteDto{}
 		err := ctx.ShouldBind(&dto)

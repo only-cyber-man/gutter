@@ -14,7 +14,7 @@ import (
 type InviteDto struct {
 	Username            string `json:"username" binding:"required"`
 	EncryptedPrivateKey string `json:"encryptedPrivateKey" binding:"required"`
-	PublicKey           string `json:"plaintextPublicKey" binding:"required"`
+	ChatPublicKey       string `json:"chatPublicKey" binding:"required"`
 }
 
 var (
@@ -108,7 +108,7 @@ func (us *Client) Invite(requester *domain.User, input *InviteDto) error {
 		Data: domain.Chat{
 			CreatorId:       requester.Id,
 			ParticipantsIds: []string{invitee.Id},
-			PublicKey:       input.PublicKey,
+			PublicKey:       input.ChatPublicKey,
 		},
 	})
 	if err != nil {
