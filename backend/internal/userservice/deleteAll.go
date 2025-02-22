@@ -10,12 +10,12 @@ import (
 
 func (us *Client) DeleteAll() error {
 	var errs error
-	users, err := us.usersCollection.GetFullList(&pocketbase.GetFullListInput[domain.User]{})
+	users, err := us.users.GetFullList(&pocketbase.GetFullListInput[domain.User]{})
 	if err != nil {
 		return err
 	}
 	for _, user := range users {
-		err = us.usersCollection.DeleteOne(&pocketbase.DeleteOneInput{
+		err = us.users.DeleteOne(&pocketbase.DeleteOneInput{
 			Id: user.Id,
 		})
 		if err != nil {

@@ -22,7 +22,7 @@ var (
 )
 
 func (us *Client) Login(input *LoginDto) (*domain.User, string, error) {
-	users, err := us.usersCollection.GetFullList(&pocketbase.GetFullListInput[domain.User]{
+	users, err := us.users.GetFullList(&pocketbase.GetFullListInput[domain.User]{
 		Filter: pocketbase.BuildFilter(
 			"username = {:username}",
 			map[string]interface{}{
@@ -55,7 +55,7 @@ func (us *Client) Login(input *LoginDto) (*domain.User, string, error) {
 		return nil, "", ErrIncorrectPassword
 	}
 
-	_, err = us.usersCollection.UpdateOne(&pocketbase.UpdateOneInput[domain.User]{
+	_, err = us.users.UpdateOne(&pocketbase.UpdateOneInput[domain.User]{
 		Id: users[0].Id,
 		Data: domain.User{
 			PushToken: input.PushToken,

@@ -19,6 +19,7 @@ func (c *Client) AddRoutes_ApiFriendships() {
 		rest.FailOrReturn(ctx, output, err)
 	})
 	c.RestClient.AddRoute("POST", "/api/friendships/invite", c.WithAuth(), func(ctx *gin.Context) {
+		// TODO: add the gu_key_exchanges collection record
 		user, _ := ctx.Get("user")
 		dto := userservice.InviteDto{}
 		err := ctx.ShouldBind(&dto)

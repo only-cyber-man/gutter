@@ -24,7 +24,7 @@ var (
 
 func (us *Client) Answer(requester *domain.User, input *AnswerDto) error {
 	var err, notificationErr error
-	friendships, err := us.friendshipsCollection.GetFullList(&pocketbase.GetFullListInput[domain.Friendship]{
+	friendships, err := us.friendships.GetFullList(&pocketbase.GetFullListInput[domain.Friendship]{
 		Filter: pocketbase.BuildFilter(
 			"id = {:friendshipId}",
 			map[string]interface{}{
@@ -40,15 +40,15 @@ func (us *Client) Answer(requester *domain.User, input *AnswerDto) error {
 		return ErrFriendshipNotFound
 	}
 	foundFriendship := friendships[0]
-	if foundFriendship.Invitee != requester.Id && foundFriendship.Requester != requester.Id {
+	if foundFriendship.InviteeId != requester.Id && foundFriendship.RequesterId != requester.Id {
 		return ErrFriendshipNotFound
 	}
-	if foundFriendship.Requester == requester.Id && input.Accept {
+	if foundFriendship.RequesterId == requester.Id && input.Accept {
 		return ErrCantAcceptOwnRequest
 	}
 	if input.Accept {
 		foundFriendship.Status = domain.FriendsStatus
-		_, err = us.friendshipsCollection.SaveOne(&pocketbase.SaveOneInput[domain.Friendship]{
+		_, err = us.friendships.SaveOne(&pocketbase.SaveOneInput[domain.Friendship]{
 			Data: foundFriendship,
 		})
 		notificationErr = us.expoClient.SendNotification(&expo.SendNotificationInput{
@@ -59,10 +59,10 @@ func (us *Client) Answer(requester *domain.User, input *AnswerDto) error {
 			),
 		}, foundFriendship.E.Requester.PushToken)
 	} else {
-		err = us.friendshipsCollection.DeleteOne(&pocketbase.DeleteOneInput{
+		err = us.friendships.DeleteOne(&pocketbase.DeleteOneInput{
 			Id: foundFriendship.Id,
 		})
-		if requester.Id == foundFriendship.Invitee {
+		if requester.Id == foundFriendship.InviteeId {
 			notificationErr = us.expoClient.SendNotification(&expo.SendNotificationInput{
 				Title: "Friendship request rejected",
 				Body: fmt.Sprintf(

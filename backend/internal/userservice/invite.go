@@ -12,7 +12,9 @@ import (
 )
 
 type InviteDto struct {
-	Username string `json:"username" binding:"required"`
+	Username            string `json:"username" binding:"required"`
+	EncryptedPrivateKey string `json:"encryptedPrivateKey" binding:"required"`
+	PublicKey           string `json:"plaintextPublicKey" binding:"required"`
 }
 
 var (
@@ -23,7 +25,7 @@ var (
 )
 
 func (us *Client) Invite(requester *domain.User, input *InviteDto) error {
-	users, err := us.usersCollection.GetFullList(&pocketbase.GetFullListInput[domain.User]{
+	users, err := us.users.GetFullList(&pocketbase.GetFullListInput[domain.User]{
 		Filter: pocketbase.BuildFilter(
 			"username = {:username}",
 			map[string]interface{}{
@@ -51,7 +53,7 @@ func (us *Client) Invite(requester *domain.User, input *InviteDto) error {
 	if invitee.Id == requester.Id {
 		return ErrCantInviteSelf
 	}
-	friendships, err := us.friendshipsCollection.GetFullList(&pocketbase.GetFullListInput[domain.Friendship]{
+	friendships, err := us.friendships.GetFullList(&pocketbase.GetFullListInput[domain.Friendship]{
 		Filter: pocketbase.BuildFilter(
 			"requester.id = {:requesterId} && invitee.username = {:inviteeUsername}",
 			map[string]interface{}{
@@ -78,7 +80,7 @@ func (us *Client) Invite(requester *domain.User, input *InviteDto) error {
 			return ErrUserAlreadyInvited
 		default:
 			slog.Error(
-				"this shouldn't be possible. friendship record status is not available",
+				"this shouldn't be possible. friendship record status is not defined",
 				"record", friendshipRecord,
 				"requester", requester.Username,
 				"invitee", invitee.Username,
@@ -86,17 +88,51 @@ func (us *Client) Invite(requester *domain.User, input *InviteDto) error {
 			return ErrSomethingWentWrongInvite
 		}
 	}
-	_, err = us.friendshipsCollection.CreateOne(&pocketbase.CreateOneInput[domain.Friendship]{
+	_, err = us.friendships.CreateOne(&pocketbase.CreateOneInput[domain.Friendship]{
 		Data: domain.Friendship{
-			Requester: requester.Id,
-			Invitee:   invitee.Id,
-			Status:    domain.FriendshipStatusRequestSent,
+			RequesterId: requester.Id,
+			InviteeId:   invitee.Id,
+			Status:      domain.FriendshipStatusRequestSent,
 		},
 	})
 	if err != nil {
 		slog.Error(
 			"error occured when creating a friendship record",
 			"err", err,
+			"requester", requester.Username,
+			"invitee", invitee.Username,
+		)
+		return ErrSomethingWentWrongInvite
+	}
+	chat, err := us.chats.CreateOne(&pocketbase.CreateOneInput[domain.Chat]{
+		Data: domain.Chat{
+			CreatorId:       requester.Id,
+			ParticipantsIds: []string{invitee.Id},
+			PublicKey:       input.PublicKey,
+		},
+	})
+	if err != nil {
+		slog.Error(
+			"error occured when creating a chat record",
+			"err", err,
+			"requester", requester.Username,
+			"invitee", invitee.Username,
+		)
+		return ErrSomethingWentWrongInvite
+	}
+	_, err = us.keyExchanges.CreateOne(&pocketbase.CreateOneInput[domain.KeyExchange]{
+		Data: domain.KeyExchange{
+			EncryptedPrivateKey: input.EncryptedPrivateKey,
+			RequesterId:         requester.Id,
+			TargetId:            invitee.Id,
+			RelatedChatId:       chat.Id,
+		},
+	})
+	if err != nil {
+		slog.Error(
+			"error occured when creating a key exchange record",
+			"err", err,
+			"chat", chat,
 			"requester", requester.Username,
 			"invitee", invitee.Username,
 		)

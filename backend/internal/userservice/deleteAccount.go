@@ -7,7 +7,7 @@ import (
 )
 
 func (us *Client) DeleteAccount(requester *domain.User) error {
-	return us.usersCollection.DeleteOne(&pocketbase.DeleteOneInput{
+	return us.users.DeleteOne(&pocketbase.DeleteOneInput{
 		Id: requester.Id,
 	})
 }

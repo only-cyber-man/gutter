@@ -11,7 +11,7 @@ func (us *Client) Verify(token string) (*domain.User, error) {
 	if err != nil {
 		return nil, err
 	}
-	user, err := us.usersCollection.GetOne(&pocketbase.GetOneInput[domain.User]{
+	user, err := us.users.GetOne(&pocketbase.GetOneInput[domain.User]{
 		Id: userId,
 	})
 	if err != nil {

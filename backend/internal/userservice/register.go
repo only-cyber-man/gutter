@@ -24,7 +24,7 @@ var (
 )
 
 func (us *Client) Register(input *RegisterDto) (*domain.User, string, error) {
-	users, err := us.usersCollection.GetFullList(&pocketbase.GetFullListInput[domain.User]{
+	users, err := us.users.GetFullList(&pocketbase.GetFullListInput[domain.User]{
 		Filter: pocketbase.BuildFilter(
 			"username = {:username}",
 			map[string]interface{}{
@@ -47,7 +47,7 @@ func (us *Client) Register(input *RegisterDto) (*domain.User, string, error) {
 		input.Password,
 		utils.Getenv("AES_KEY", "ba7816bf8f01cfea414140de5dae2223"),
 	)
-	user, err := us.usersCollection.CreateOne(&pocketbase.CreateOneInput[domain.User]{
+	user, err := us.users.CreateOne(&pocketbase.CreateOneInput[domain.User]{
 		Data: domain.User{
 			Username:          input.Username,
 			EncryptedPassword: encryptedPassword,

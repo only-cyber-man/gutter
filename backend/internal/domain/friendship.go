@@ -16,9 +16,9 @@ func (s FriendshipStatus) String() string {
 type Friendship struct {
 	pocketbase.PbItem
 
-	Requester string           `json:"requester"`
-	Invitee   string           `json:"invitee"`
-	Status    FriendshipStatus `json:"status"`
+	RequesterId string           `json:"requester"`
+	InviteeId   string           `json:"invitee"`
+	Status      FriendshipStatus `json:"status"`
 
 	E struct {
 		Requester User `json:"requester"`
