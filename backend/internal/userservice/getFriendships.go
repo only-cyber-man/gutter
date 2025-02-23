@@ -9,12 +9,12 @@ import (
 func (us *Client) GetFriendships(requester *domain.User) ([]domain.KeyExchange, error) {
 	keyExchanges, err := us.keyExchanges.GetFullList(&pocketbase.GetFullListInput[domain.KeyExchange]{
 		Filter: pocketbase.BuildFilter(
-			"relatedChat.requester.id = {:userId} || relatedChat.invitee.id = {:userId}",
+			"relatedChat.creator.id = {:userId} || relatedChat.participants.id ?= {:userId}",
 			map[string]interface{}{
 				"userId": requester.Id,
 			},
 		),
-		Expand: "requester,target,relatedChat",
+		Expand: "creator,target,relatedChat",
 	})
 	if err != nil {
 		return nil, err

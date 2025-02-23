@@ -23,6 +23,7 @@ var (
 )
 
 func (us *Client) Answer(requester *domain.User, input *AnswerDto) error {
+	// TODO: Cleanup encrypted private key after accept - it's so > 9k characters combined damn
 	var err, notificationErr error
 	friendships, err := us.friendships.GetFullList(&pocketbase.GetFullListInput[domain.Friendship]{
 		Filter: pocketbase.BuildFilter(
