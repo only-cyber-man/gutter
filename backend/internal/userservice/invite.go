@@ -9,6 +9,7 @@ import (
 
 	"github.com/tomek7667/cyberman-go/expo"
 	"github.com/tomek7667/cyberman-go/pocketbase"
+	"github.com/tomek7667/cyberman-go/utils"
 )
 
 type InviteDto struct {
@@ -25,6 +26,7 @@ var (
 )
 
 func (us *Client) Invite(requester *domain.User, input *InviteDto) (*domain.Chat, error) {
+	tx := utils.CreateTransaction()
 	users, err := us.users.GetFullList(&pocketbase.GetFullListInput[domain.User]{
 		Filter: pocketbase.BuildFilter(
 			"username = {:username}",
@@ -88,50 +90,92 @@ func (us *Client) Invite(requester *domain.User, input *InviteDto) (*domain.Chat
 			return nil, ErrSomethingWentWrongInvite
 		}
 	}
-	_, err = us.friendships.CreateOne(&pocketbase.CreateOneInput[domain.Friendship]{
-		Data: domain.Friendship{
-			RequesterId: requester.Id,
-			InviteeId:   invitee.Id,
-			Status:      domain.FriendshipStatusRequestSent,
-		},
+
+	var friendship *domain.Friendship
+	err = tx.A(func() error {
+		_friendship, err := us.friendships.CreateOne(&pocketbase.CreateOneInput[domain.Friendship]{
+			Data: domain.Friendship{
+				RequesterId: requester.Id,
+				InviteeId:   invitee.Id,
+				Status:      domain.FriendshipStatusRequestSent,
+			},
+		})
+		if err == nil {
+			friendship = _friendship
+		}
+		return err
+	}, func() error {
+		return us.friendships.DeleteOne(&pocketbase.DeleteOneInput{
+			Id: friendship.Id,
+		})
 	})
 	if err != nil {
+		reason, rollbackErrors := tx.R(err)
 		slog.Error(
 			"error occured when creating a friendship record",
-			"err", err,
+			"main reason", reason,
+			"rollback errors", rollbackErrors,
 			"requester", requester.Username,
 			"invitee", invitee.Username,
 		)
 		return nil, ErrSomethingWentWrongInvite
 	}
-	chat, err := us.chats.CreateOne(&pocketbase.CreateOneInput[domain.Chat]{
-		Data: domain.Chat{
-			CreatorId:       requester.Id,
-			ParticipantsIds: []string{invitee.Id},
-			PublicKey:       input.ChatPublicKey,
-		},
+
+	var chat *domain.Chat
+	err = tx.A(func() error {
+		_chat, err := us.chats.CreateOne(&pocketbase.CreateOneInput[domain.Chat]{
+			Data: domain.Chat{
+				CreatorId:       requester.Id,
+				ParticipantsIds: []string{invitee.Id},
+				PublicKey:       input.ChatPublicKey,
+			},
+		})
+		if err == nil {
+			chat = _chat
+		}
+		return err
+	}, func() error {
+		return us.chats.DeleteOne(&pocketbase.DeleteOneInput{
+			Id: chat.Id,
+		})
 	})
 	if err != nil {
+		reason, rollbackErrors := tx.R(err)
 		slog.Error(
 			"error occured when creating a chat record",
-			"err", err,
+			"main reason", reason,
+			"rollback errors", rollbackErrors,
 			"requester", requester.Username,
 			"invitee", invitee.Username,
 		)
 		return nil, ErrSomethingWentWrongInvite
 	}
-	_, err = us.keyExchanges.CreateOne(&pocketbase.CreateOneInput[domain.KeyExchange]{
-		Data: domain.KeyExchange{
-			EncryptedPrivateKey: input.EncryptedPrivateKey,
-			RequesterId:         requester.Id,
-			TargetId:            invitee.Id,
-			RelatedChatId:       chat.Id,
-		},
+
+	var keyExchange *domain.KeyExchange
+	err = tx.A(func() error {
+		_keyExchange, err := us.keyExchanges.CreateOne(&pocketbase.CreateOneInput[domain.KeyExchange]{
+			Data: domain.KeyExchange{
+				EncryptedPrivateKey: input.EncryptedPrivateKey,
+				RequesterId:         requester.Id,
+				TargetId:            invitee.Id,
+				RelatedChatId:       chat.Id,
+			},
+		})
+		if err == nil {
+			keyExchange = _keyExchange
+		}
+		return err
+	}, func() error {
+		return us.keyExchanges.DeleteOne(&pocketbase.DeleteOneInput{
+			Id: keyExchange.Id,
+		})
 	})
 	if err != nil {
+		reason, rollbackErrors := tx.R(err)
 		slog.Error(
 			"error occured when creating a key exchange record",
-			"err", err,
+			"main reason", reason,
+			"rollback errors", rollbackErrors,
 			"chat", chat,
 			"requester", requester.Username,
 			"invitee", invitee.Username,
