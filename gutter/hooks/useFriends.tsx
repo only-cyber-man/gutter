@@ -2,13 +2,24 @@ import { baseUrl, buildHeaders } from "@/constants/api";
 import { Alert } from "react-native";
 import { create } from "zustand";
 
-export interface Friend {
+export interface User {
 	id: string;
 	username: string;
+	publicKey: string;
 }
 
-export interface FriendWithCollections {
-	user: Friend;
+export interface Chat {
+	id: string;
+	creator: string;
+	participants: string[];
+	publicKey: string;
+	updated: string;
+	created: string;
+
+	expand: {
+		creator: User | null;
+		participants: User[] | null;
+	};
 }
 
 export enum FriendStatuses {
@@ -16,7 +27,9 @@ export enum FriendStatuses {
 	Friends = "friends",
 }
 
-export const TranslateFriendshipStatus = (status: string): string => {
+export type FriendStatus = FriendStatuses.Friends | FriendStatuses.RequestSent;
+
+export const TranslateFriendshipStatus = (status: FriendStatus): string => {
 	switch (status) {
 		case FriendStatuses.RequestSent: {
 			return "Invite sent";
@@ -30,16 +43,47 @@ export const TranslateFriendshipStatus = (status: string): string => {
 };
 
 export interface Friendship {
-	friendshipId: string;
-	invitee: Friend;
-	requester: Friend;
-	status: string;
+	id: string;
+	requester: string;
+	invitee: string;
+	status: FriendStatus;
+	created: string;
+	updated: string;
+
+	expand: {
+		requester: User | null;
+		invitee: User | null;
+	};
+}
+
+export interface KeyExchanges {
+	id: string;
+	relatedChat: string;
+	requester: string;
+	target: string;
+	friendship: string;
+	encryptedPrivateKey: string;
+	updated: string;
+	created: string;
+
+	expand: {
+		relatedChat: Chat | null;
+		requester: User | null;
+		target: User | null;
+		friendship: Friendship | null;
+	};
 }
 
 export interface FriendsListStore {
 	isLoading: boolean;
-	getFriendships: (token?: string) => Promise<Friendship[]>;
-	inviteFriend: (username: string, token?: string) => Promise<void>;
+	getFriendships: (token?: string) => Promise<KeyExchanges[]>;
+	getUserByUsername: (username: string) => Promise<User>;
+	inviteFriend: (
+		username: string,
+		encryptedPrivateKey: string,
+		chatPublicKey: string,
+		token?: string,
+	) => Promise<Chat>;
 	answerFriend: (
 		friendshipId: string,
 		accept: boolean,
@@ -49,7 +93,33 @@ export interface FriendsListStore {
 
 export const useFriends = create<FriendsListStore>((set, get) => ({
 	isLoading: false,
-	inviteFriend: async (username: string, token?: string) => {
+	getUserByUsername: async (username: string): Promise<User> => {
+		try {
+			set({ isLoading: true });
+			const params = new URLSearchParams();
+			params.set("username", username);
+			const url = `${baseUrl}/find-user?${params.toString()}`;
+			const response = await fetch(url, {
+				method: "GET",
+			});
+			const { data, message, success } = await response.json();
+			if (!success) {
+				throw new Error(message);
+			}
+			set({ isLoading: false });
+			return data;
+		} catch (err: any) {
+			set({ isLoading: false });
+			Alert.alert("Error occurred", err.message);
+			throw err;
+		}
+	},
+	inviteFriend: async (
+		username: string,
+		encryptedPrivateKey: string,
+		chatPublicKey: string,
+		token?: string,
+	) => {
 		try {
 			set({ isLoading: true });
 			const response = await fetch(`${baseUrl}/friendships/invite`, {
@@ -57,13 +127,16 @@ export const useFriends = create<FriendsListStore>((set, get) => ({
 				headers: buildHeaders(token),
 				body: JSON.stringify({
 					username,
+					encryptedPrivateKey,
+					chatPublicKey,
 				}),
 			});
-			const { message, success } = await response.json();
+			const { data, message, success } = await response.json();
 			if (!success) {
 				throw new Error(message);
 			}
 			set({ isLoading: false });
+			return data;
 		} catch (err: any) {
 			set({ isLoading: false });
 			Alert.alert("Error occurred", err.message);

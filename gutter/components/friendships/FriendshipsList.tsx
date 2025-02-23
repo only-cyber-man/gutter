@@ -5,17 +5,19 @@ import { router } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useUser } from "@/hooks/useUser";
 import {
-	Friendship,
+	KeyExchanges,
 	FriendStatuses,
 	TranslateFriendshipStatus,
 	useFriends,
 } from "@/hooks/useFriends";
 import { ColorValues } from "@/constants/Colors";
+import { decryptLongMessageRSA, useKeys } from "@/hooks/useKeys";
 
 export const FriendshipsList = () => {
 	const { token, user } = useUser();
 	const { getFriendships, isLoading, answerFriend } = useFriends();
-	const [friendships, setFriendships] = useState<Friendship[]>([]);
+	const { userKeys, addNewChat } = useKeys();
+	const [friendships, setFriendships] = useState<KeyExchanges[]>([]);
 
 	const refresh = async () => {
 		const friendships = await getFriendships(token);
@@ -26,12 +28,12 @@ export const FriendshipsList = () => {
 		refresh();
 	}, [token]);
 
-	const renderItem = ({ item }: { item: Friendship; index: number }) => {
-		const isSender = user?.id === item.requester.id;
+	const renderItem = ({ item }: { item: KeyExchanges; index: number }) => {
+		const isSender = user?.id === item.requester;
 
 		return (
 			<XStack
-				key={item.friendshipId}
+				key={item.id}
 				style={{
 					borderBottomWidth: 1,
 					borderBottomColor: "gray",
@@ -45,7 +47,9 @@ export const FriendshipsList = () => {
 						flex: 1,
 					}}
 				>
-					{isSender ? item.invitee.username : item.requester.username}
+					{isSender
+						? item.expand.target?.username
+						: item.expand.requester?.username}
 				</Text>
 				{/* if the user is the requester, he can just wait */}
 				<Text
@@ -53,27 +57,51 @@ export const FriendshipsList = () => {
 						marginRight: 8,
 					}}
 				>
-					{TranslateFriendshipStatus(item.status)}
+					{TranslateFriendshipStatus(item.expand.friendship!.status)}
 				</Text>
 				{/* if the user is the invitee, he can accept the friendship */}
-				{!isSender && item.status !== FriendStatuses.Friends && (
-					<TouchableOpacity
-						onPress={async () => {
-							await answerFriend(item.friendshipId, true, token);
-							await refresh();
-						}}
-						disabled={isLoading}
-					>
-						<MaterialCommunityIcons
-							name="check-circle-outline"
-							size={32}
-							color={ColorValues.Green}
-						/>
-					</TouchableOpacity>
-				)}
+				{!isSender &&
+					item.expand.friendship!.status !==
+						FriendStatuses.Friends && (
+						<TouchableOpacity
+							onPress={async () => {
+								try {
+									const decodedPrivKey =
+										await decryptLongMessageRSA(
+											item.encryptedPrivateKey,
+											userKeys[user!.id]!.private,
+										);
+									await answerFriend(
+										item.expand.friendship!.id,
+										true,
+										token,
+									);
+									addNewChat(item.relatedChat, {
+										public: item.expand.relatedChat!
+											.publicKey,
+										private: decodedPrivKey,
+									});
+									await refresh();
+								} catch (err: any) {
+									console.log("answer err", err);
+								}
+							}}
+							disabled={isLoading}
+						>
+							<MaterialCommunityIcons
+								name="check-circle-outline"
+								size={32}
+								color={ColorValues.Green}
+							/>
+						</TouchableOpacity>
+					)}
 				<TouchableOpacity
 					onPress={async () => {
-						await answerFriend(item.friendshipId, false, token);
+						await answerFriend(
+							item.expand.friendship!.id,
+							false,
+							token,
+						);
 						await refresh();
 					}}
 					disabled={isLoading}

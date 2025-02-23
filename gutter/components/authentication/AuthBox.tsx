@@ -1,11 +1,11 @@
-import { useKeys } from "@/hooks/useKeys";
+import { generateKeyPairRSA, useKeys } from "@/hooks/useKeys";
 import { Button, ButtonText, XStack, YStack, TextInput } from "../Themed";
 import { useState } from "react";
 import { ActivityIndicator } from "react-native";
 import { useUser } from "@/hooks/useUser";
 
 export const AuthBox = () => {
-	const { createNewUserKeypair } = useKeys();
+	const { saveUserPair } = useKeys();
 	const { login, register, isLoading } = useUser();
 	const [username, setUsername] = useState("");
 	const [password, setPassword] = useState("");
@@ -40,8 +40,13 @@ export const AuthBox = () => {
 					disabled={isLoading}
 					onPress={async () => {
 						try {
-							const keypair = await createNewUserKeypair();
-							await register(username, password, keypair.public);
+							const keypair = await generateKeyPairRSA();
+							const { user } = await register(
+								username,
+								password,
+								keypair.public,
+							);
+							saveUserPair(user.id, keypair);
 						} catch (err) {
 							console.log("err", err);
 						}

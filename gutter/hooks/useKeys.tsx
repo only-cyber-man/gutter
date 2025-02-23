@@ -15,6 +15,17 @@ export const encryptMessageRSA = async (
 ): Promise<string> => {
 	return await RSA.encrypt(message, recipientPubKey);
 };
+export const encryptLongMessageRSA = async (
+	message: string,
+	recipientPubKey: string,
+): Promise<string> => {
+	const splitted = message.match(/.{1,256}/g)!;
+	const encrypted: string[] = [];
+	for (const s of splitted) {
+		encrypted.push(await encryptMessageRSA(s, recipientPubKey));
+	}
+	return encrypted.join(";");
+};
 
 export const decryptMessageRSA = async (
 	encrypted: string,
@@ -23,16 +34,30 @@ export const decryptMessageRSA = async (
 	return await RSA.decrypt(encrypted, recipientPrivKey);
 };
 
+export const decryptLongMessageRSA = async (
+	longEncrypted: string,
+	recipientPrivKey: string,
+): Promise<string> => {
+	const splitted = longEncrypted.split(";");
+	let message = "";
+	for (const s of splitted) {
+		const decryptedChunk = await decryptMessageRSA(s, recipientPrivKey);
+		message += decryptedChunk;
+	}
+	return message;
+};
+
 export interface KeyPair {
 	public: string;
 	private: string;
 }
 
 export interface KeysStore {
-	user: KeyPair | null;
+	userKeys: Record<string, KeyPair>;
 	isLoading: boolean;
-	chats: Record<string, KeyPair[]>;
-	createNewUserKeypair: () => Promise<KeyPair>;
+	chats: Record<string, KeyPair>;
+	saveUserPair: (userId: string, newKeyPair: KeyPair) => void;
+	addNewChat: (chatId: string, keyPair: KeyPair) => void;
 }
 
 export const useKeys = create(
@@ -40,18 +65,29 @@ export const useKeys = create(
 		(set, get) => ({
 			chats: {},
 			isLoading: false,
-			user: null,
-			createNewUserKeypair: async () => {
-				const newPair = await generateKeyPairRSA();
+			userKeys: {},
+			saveUserPair: (userId: string, newKeyPair: KeyPair) => {
+				const { userKeys } = get();
 				set({
-					user: newPair,
+					userKeys: {
+						...userKeys,
+						[userId]: newKeyPair,
+					},
 				});
-				return newPair;
+			},
+			addNewChat: (chatId, keyPair) => {
+				const { chats: _chats } = get();
+				set({
+					chats: {
+						..._chats,
+						[chatId]: keyPair,
+					},
+				});
 			},
 		}),
 		{
 			name: "gutter-keys-store",
-			storage: new ZustandStorage(),
+			storage: ZustandStorage.create("keys", ".key.json"),
 		},
 	),
 );

@@ -4,6 +4,11 @@ import { Button, ButtonText, TextInput, XStack, YStack } from "../Themed";
 import { router } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { useUser } from "@/hooks/useUser";
+import {
+	encryptLongMessageRSA,
+	generateKeyPairRSA,
+	useKeys,
+} from "@/hooks/useKeys";
 
 export const InviteFriendForm = ({
 	defaultUsername,
@@ -11,7 +16,8 @@ export const InviteFriendForm = ({
 	defaultUsername?: string;
 }) => {
 	const { token } = useUser();
-	const { inviteFriend, isLoading } = useFriends();
+	const { inviteFriend, getUserByUsername, isLoading } = useFriends();
+	const { addNewChat } = useKeys();
 	const [username, setUsername] = useState(defaultUsername ?? "");
 	return (
 		<YStack
@@ -21,7 +27,7 @@ export const InviteFriendForm = ({
 			}}
 		>
 			<TextInput
-				placeholder="Nazwa znajomego"
+				placeholder="Friend's username"
 				textContentType="username"
 				onChangeText={setUsername}
 			/>
@@ -30,12 +36,35 @@ export const InviteFriendForm = ({
 				<Button
 					disabled={isLoading}
 					onPress={async () => {
-						await inviteFriend(username, token);
-						router.dismissAll();
-						router.navigate("/friendships");
+						try {
+							// console.log(1);
+							const invitee = await getUserByUsername(username);
+							// console.log(2);
+							const chatKeyPair = await generateKeyPairRSA();
+							// console.log(3);
+							const encryptedPrivateKey =
+								await encryptLongMessageRSA(
+									chatKeyPair.private,
+									invitee.publicKey,
+								);
+							// console.log(4);
+							const createdChat = await inviteFriend(
+								username,
+								encryptedPrivateKey,
+								chatKeyPair.public,
+								token,
+							);
+							// console.log(5);
+							addNewChat(createdChat.id, chatKeyPair);
+							// console.log(6);
+							router.dismissAll();
+							router.navigate("/friendships");
+						} catch (err: any) {
+							console.log("err", err);
+						}
 					}}
 				>
-					<ButtonText>Zaproś</ButtonText>
+					<ButtonText>Invite</ButtonText>
 				</Button>
 			</XStack>
 			{isLoading && <ActivityIndicator />}

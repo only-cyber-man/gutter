@@ -22,7 +22,7 @@ export interface UserStore {
 		username: string,
 		password: string,
 		publicKey: string,
-	) => Promise<void>;
+	) => Promise<{ user: User; token: string }>;
 	logout: () => void;
 	deleteAccount: (token: string) => Promise<void>;
 }
@@ -100,6 +100,7 @@ export const useUser = create(
 						token,
 						user,
 					});
+					return data;
 				} catch (err: any) {
 					Alert.alert("Error occurred", err.message);
 				} finally {
@@ -133,7 +134,7 @@ export const useUser = create(
 		}),
 		{
 			name: "gutter-user-store",
-			storage: new ZustandStorage(),
+			storage: ZustandStorage.create("user-store", ".json"),
 		},
 	),
 );
