@@ -14,7 +14,7 @@ func (us *Client) GetFriendships(requester *domain.User) ([]domain.KeyExchange, 
 				"userId": requester.Id,
 			},
 		),
-		Expand: "requester,target,relatedChat",
+		Expand: "requester,target,relatedChat,friendship",
 	})
 	if err != nil {
 		return nil, err

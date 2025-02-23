@@ -12,10 +12,12 @@ type KeyExchange struct {
 	RequesterId         string `json:"requester"`
 	TargetId            string `json:"target"`
 	RelatedChatId       string `json:"relatedChat"`
+	FriendshipId        string `json:"friendship"`
 
 	E struct {
-		Requester   User `json:"requester"`
-		Target      User `json:"target"`
-		RelatedChat Chat `json:"relatedChat"`
+		Requester   User       `json:"requester"`
+		Target      User       `json:"target"`
+		RelatedChat Chat       `json:"relatedChat"`
+		Friendship  Friendship `json:"friendship"`
 	} `json:"expand,omitempty"`
 }

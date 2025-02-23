@@ -159,6 +159,7 @@ func (us *Client) Invite(requester *domain.User, input *InviteDto) (*domain.Chat
 				RequesterId:         requester.Id,
 				TargetId:            invitee.Id,
 				RelatedChatId:       chat.Id,
+				FriendshipId:        friendship.Id,
 			},
 		})
 		if err == nil {
