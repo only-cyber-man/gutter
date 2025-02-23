@@ -125,7 +125,8 @@ func (us *Client) Invite(requester *domain.User, input *InviteDto) (*domain.Chat
 	err = tx.A(func() error {
 		_chat, err := us.chats.CreateOne(&pocketbase.CreateOneInput[domain.Chat]{
 			Data: domain.Chat{
-				CreatorId:       requester.Id,
+				CreatorId: requester.Id,
+				// TODO: Consider adding the participant id after the accept of the invite. Should be better.
 				ParticipantsIds: []string{invitee.Id},
 				PublicKey:       input.ChatPublicKey,
 			},
