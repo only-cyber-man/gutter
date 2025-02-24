@@ -5,7 +5,7 @@ go 1.23.5
 require (
 	github.com/JGLTechnologies/gin-rate-limit v1.5.4
 	github.com/gin-gonic/gin v1.10.0
-	github.com/tomek7667/cyberman-go v1.0.33
+	github.com/tomek7667/cyberman-go v1.0.34
 )
 
 require (
