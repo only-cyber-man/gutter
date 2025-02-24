@@ -4,6 +4,7 @@ import { Alert } from "react-native";
 import { getNotificationsToken } from "@/api/notifications";
 import { baseUrl, buildHeaders } from "@/constants/api";
 import { ZustandStorage } from "./ZustandStorage";
+import { decryptLongMessageRSA } from "./useKeys";
 
 export interface User {
 	id: string;
@@ -17,11 +18,11 @@ export interface UserStore {
 	user: User | null;
 
 	isLoggedIn: () => boolean;
-	login: (username: string, password: string) => Promise<void>;
+	login: (username: string, privateKey: string) => Promise<void>;
 	register: (
 		username: string,
-		password: string,
 		publicKey: string,
+		privateKey: string,
 	) => Promise<{ user: User; token: string }>;
 	logout: () => void;
 	deleteAccount: (token: string) => Promise<void>;
@@ -38,7 +39,7 @@ export const useUser = create(
 				const { token, user } = get();
 				return token !== "" && user !== null;
 			},
-			login: async (username, password) => {
+			login: async (username, privateKey) => {
 				try {
 					set({ isLoading: true });
 					let pushToken: string | undefined;
@@ -51,7 +52,6 @@ export const useUser = create(
 						method: "POST",
 						body: JSON.stringify({
 							username,
-							password,
 							pushToken,
 						}),
 						headers: buildHeaders(),
@@ -60,7 +60,16 @@ export const useUser = create(
 					if (!success) {
 						throw new Error(message);
 					}
-					const { token, user } = data;
+					const { token: encryptedToken, user: encryptedUser } = data;
+					const token = await decryptLongMessageRSA(
+						encryptedToken,
+						privateKey,
+					);
+					const _user = await decryptLongMessageRSA(
+						encryptedUser,
+						privateKey,
+					);
+					const user = JSON.parse(_user);
 					set({
 						token,
 						user,
@@ -71,7 +80,7 @@ export const useUser = create(
 					set({ isLoading: false });
 				}
 			},
-			register: async (username, password, publicKey) => {
+			register: async (username, publicKey, privateKey) => {
 				try {
 					set({ isLoading: true });
 					let pushToken: string | undefined;
@@ -85,7 +94,6 @@ export const useUser = create(
 						method: "POST",
 						body: JSON.stringify({
 							username,
-							password,
 							pushToken,
 							publicKey,
 						}),
@@ -95,16 +103,28 @@ export const useUser = create(
 					if (!success) {
 						throw new Error(message);
 					}
-					const { token, user } = data;
+					const { token: encryptedToken, user: encryptedUser } = data;
+					const token = await decryptLongMessageRSA(
+						encryptedToken,
+						privateKey,
+					);
+					const _user = await decryptLongMessageRSA(
+						encryptedUser,
+						privateKey,
+					);
+					const user = JSON.parse(_user);
 					set({
 						token,
 						user,
+						isLoading: false,
 					});
-					return data;
+					return {
+						token,
+						user,
+					};
 				} catch (err: any) {
 					Alert.alert("Error occurred", err.message);
-				} finally {
-					set({ isLoading: false });
+					throw err;
 				}
 			},
 			logout: () => {

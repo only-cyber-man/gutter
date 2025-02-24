@@ -1569,6 +1569,11 @@
   resolved "https://registry.yarnpkg.com/@pkgr/core/-/core-0.1.1.tgz#1ec17e2edbec25c8306d424ecfbf13c7de1aaa31"
   integrity sha512-cq8o4cWH0ibXh9VGi5P20Tu9XF/0fFXl9EUinr9QfTM7a7p0oTA4iJRCQWppXR1Pg8dSM0UCItCkPwsk9qWWYA==
 
+"@powerdesigninc/react-native-prompt@^0.1.2":
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/@powerdesigninc/react-native-prompt/-/react-native-prompt-0.1.2.tgz#e1fff5fddef6c6592337a7655ee505fabe711333"
+  integrity sha512-AmdG7/PAsZNGqh3ZZukVN/o84XVTYPvGmz0kUPT2ftlYsKiX6iResu9tgHt7Swvfs9QY3ADlNc4+BqztpwJIyw==
+
 "@radix-ui/react-compose-refs@1.0.0":
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/@radix-ui/react-compose-refs/-/react-compose-refs-1.0.0.tgz#37595b1f16ec7f228d698590e78eeed18ff218ae"
@@ -1751,6 +1756,11 @@
     graceful-fs "^4.1.3"
     prompts "^2.4.2"
     semver "^7.5.2"
+
+"@react-native-documents/picker@^10.1.0":
+  version "10.1.0"
+  resolved "https://registry.yarnpkg.com/@react-native-documents/picker/-/picker-10.1.0.tgz#466600813b69eda3799a7225433b85466d2cc740"
+  integrity sha512-ZNB1oYveA+jTvSvLaDrqGcGlXdZuVhceeFemVtpJzD4kyEoTFo3mo807cWH1oKGJZgjb1jYojBvbOkfIsl7wGw==
 
 "@react-native/assets-registry@0.76.7":
   version "0.76.7"
@@ -4311,6 +4321,11 @@ expo-device@^7.0.2:
   integrity sha512-0PkTixE4Qi8VQBjixnj4aw2f6vE4tUZH7GK8zHROGKlBypZKcWmsA+W/Vp3RC5AyREjX71pO/hjKTSo/vF0E2w==
   dependencies:
     ua-parser-js "^0.7.33"
+
+expo-document-picker@~13.0.3:
+  version "13.0.3"
+  resolved "https://registry.yarnpkg.com/expo-document-picker/-/expo-document-picker-13.0.3.tgz#9ec9b056447d11a68d61e93d33c2211fd01b460f"
+  integrity sha512-348xcsiA/YhgWm1SuJNNdb5cUDpRJYCyIk8MhOU2MEDxbVRR+Q1TiUBTCIMVqaWHcxsFQzP56Wwv9n24qjeILg==
 
 expo-file-system@~18.0.11:
   version "18.0.11"

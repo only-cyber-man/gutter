@@ -1,4 +1,5 @@
-import { Text, View } from "@/components/Themed";
+import { KeyList } from "@/components/keys/KeyList";
+import { View } from "@/components/Themed";
 import { Stack } from "expo-router";
 
 export default function Page() {
@@ -7,12 +8,12 @@ export default function Page() {
 			style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
 		>
 			<Stack.Screen
-				name="keys"
+				name="user keys"
 				options={{
-					title: "keys",
+					title: "user keys",
 				}}
 			/>
-			<Text>keys tbd</Text>
+			<KeyList />
 		</View>
 	);
 }

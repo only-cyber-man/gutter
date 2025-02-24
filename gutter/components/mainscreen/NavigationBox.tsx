@@ -79,7 +79,7 @@ export const NavigationBox = () => {
 		>
 			<XStack style={{ flex: 1 }}>
 				<Kafelek
-					name="keys"
+					name="user keys"
 					onPress={() => {
 						router.navigate("/keys");
 					}}

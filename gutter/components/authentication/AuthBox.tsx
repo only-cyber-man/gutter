@@ -1,14 +1,13 @@
 import { generateKeyPairRSA, useKeys } from "@/hooks/useKeys";
-import { Button, ButtonText, XStack, YStack, TextInput } from "../Themed";
+import { Button, ButtonText, XStack, YStack, TextInput, Text } from "../Themed";
 import { useState } from "react";
-import { ActivityIndicator } from "react-native";
+import { ActivityIndicator, Alert } from "react-native";
 import { useUser } from "@/hooks/useUser";
 
 export const AuthBox = () => {
-	const { saveUserPair } = useKeys();
+	const { saveUserPair, userKeys, uploadNewUserPair } = useKeys();
 	const { login, register, isLoading } = useUser();
 	const [username, setUsername] = useState("");
-	const [password, setPassword] = useState("");
 
 	return (
 		<YStack
@@ -21,17 +20,21 @@ export const AuthBox = () => {
 				textContentType="username"
 				onChangeText={setUsername}
 			/>
-			<TextInput
-				placeholder="password..."
-				secureTextEntry
-				textContentType="password"
-				onChangeText={setPassword}
-			/>
 			<XStack style={{ width: "100%", margin: 24 }}>
 				<Button
 					disabled={isLoading}
-					onPress={() => {
-						login(username, password);
+					onPress={async () => {
+						try {
+							if (!userKeys[username]) {
+								Alert.alert(
+									"You don't have keys to that account",
+								);
+								return;
+							}
+							await login(username, userKeys[username].private);
+						} catch (err) {
+							console.log("err", err);
+						}
 					}}
 				>
 					<ButtonText>login</ButtonText>
@@ -43,16 +46,33 @@ export const AuthBox = () => {
 							const keypair = await generateKeyPairRSA();
 							const { user } = await register(
 								username,
-								password,
 								keypair.public,
+								keypair.private,
 							);
-							saveUserPair(user.id, keypair);
+							saveUserPair(user.username, keypair);
 						} catch (err) {
 							console.log("err", err);
 						}
 					}}
 				>
 					<ButtonText>register</ButtonText>
+				</Button>
+			</XStack>
+			<XStack>
+				<Text style={{ flex: 1 }}>
+					do you have a key from the another device?
+				</Text>
+				<Button
+					onPress={async () => {
+						try {
+							const kp = await uploadNewUserPair();
+							await login(kp.username, kp.private);
+						} catch (err) {
+							console.log("err", err);
+						}
+					}}
+				>
+					<ButtonText>import</ButtonText>
 				</Button>
 			</XStack>
 			{isLoading && (

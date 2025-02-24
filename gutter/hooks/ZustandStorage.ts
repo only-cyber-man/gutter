@@ -7,6 +7,14 @@ export class ZustandStorage<T> implements PersistStorage<T> {
 	public dir: string = "";
 	public fileSuffix: string = "";
 
+	static getItemPath(
+		dir: string,
+		filename: string,
+		fileSuffix: string,
+	): string {
+		return `${allPrefix}/${dir}/${filename}${fileSuffix}`;
+	}
+
 	static create<T>(dir: string, fileSuffix: string): ZustandStorage<T> {
 		const s = new ZustandStorage<T>();
 		console.log("initializing new storage", "dir", dir);
