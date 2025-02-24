@@ -1,6 +1,7 @@
 package userservice
 
 import (
+	"encoding/json"
 	"errors"
 	"log/slog"
 
@@ -19,11 +20,14 @@ type RegisterDto struct {
 }
 
 var (
-	ErrUsernameAlreadyTaken = errors.New("this username is already taken")
-	ErrSomethingWentWrong   = errors.New("registration failed, please try again later or contact the administrator")
+	ErrUsernameAlreadyTaken       = errors.New("this username is already taken")
+	ErrSomethingWentWrongRegister = errors.New("registration failed, please try again later or contact the administrator")
 )
 
-func (us *Client) Register(input *RegisterDto) (*domain.User, string, error) {
+func (us *Client) Register(input *RegisterDto) (string, string, error) {
+	if err := utils.CheckUsername(input.Username); err != nil {
+		return "", "", err
+	}
 	users, err := us.users.GetFullList(&pocketbase.GetFullListInput[domain.User]{
 		Filter: pocketbase.BuildFilter(
 			"username = {:username}",
@@ -38,21 +42,16 @@ func (us *Client) Register(input *RegisterDto) (*domain.User, string, error) {
 			"err", err,
 			"input", input,
 		)
-		return nil, "", err
+		return "", "", err
 	}
 	if len(users) > 0 {
-		return nil, "", ErrUsernameAlreadyTaken
+		return "", "", ErrUsernameAlreadyTaken
 	}
-	encryptedPassword := crypto.EncryptAES256(
-		input.Password,
-		utils.Getenv("AES_KEY", "ba7816bf8f01cfea414140de5dae2223"),
-	)
 	user, err := us.users.CreateOne(&pocketbase.CreateOneInput[domain.User]{
 		Data: domain.User{
-			Username:          input.Username,
-			EncryptedPassword: encryptedPassword,
-			PushToken:         input.PushToken,
-			PublicKey:         input.PublicKey,
+			Username:  input.Username,
+			PushToken: input.PushToken,
+			PublicKey: input.PublicKey,
 		},
 	})
 	if err != nil {
@@ -61,7 +60,7 @@ func (us *Client) Register(input *RegisterDto) (*domain.User, string, error) {
 			"err", err,
 			"user", user,
 		)
-		return nil, "", err
+		return "", "", err
 	}
 	token, err := domain.GetToken(user)
 	if err != nil {
@@ -70,7 +69,45 @@ func (us *Client) Register(input *RegisterDto) (*domain.User, string, error) {
 			"err", err,
 			"user", user,
 		)
-		return nil, "", err
+		return "", "", ErrSomethingWentWrongRegister
 	}
-	return user, token, nil
+
+	// encrypt token and user
+	marshalled, err := json.Marshal(user)
+	if err != nil {
+		slog.Error(
+			"failed marshalling user",
+			"err", err,
+		)
+		return "", "", ErrSomethingWentWrongRegister
+	}
+
+	// encrypting user/token
+	encryptedUser, err := crypto.LongEncryptMessageRSA(
+		string(marshalled),
+		user.PublicKey,
+	)
+	if err != nil {
+		slog.Error(
+			"failed encrypting marshalled user",
+			"err", err,
+		)
+		return "", "", ErrSomethingWentWrongRegister
+	}
+
+	encryptedToken, err := crypto.LongEncryptMessageRSA(
+		token,
+		user.PublicKey,
+	)
+	if err != nil {
+		slog.Error(
+			"failed encrypting token",
+			"err", err,
+			"tk", token,
+			"user id", user.Id,
+			"public key", user.PublicKey,
+		)
+		return "", "", ErrSomethingWentWrongRegister
+	}
+	return encryptedUser, encryptedToken, nil
 }

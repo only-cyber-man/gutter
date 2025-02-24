@@ -15,6 +15,7 @@ export const encryptMessageRSA = async (
 ): Promise<string> => {
 	return await RSA.encrypt(message, recipientPubKey);
 };
+
 export const encryptLongMessageRSA = async (
 	message: string,
 	recipientPubKey: string,

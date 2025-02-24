@@ -1,6 +1,7 @@
 package userservice
 
 import (
+	"encoding/json"
 	"errors"
 	"log/slog"
 
@@ -11,17 +12,15 @@ import (
 )
 
 type LoginDto struct {
-	Username  string `json:"username" binding:"required"`
-	Password  string `json:"password" binding:"required"`
-	PushToken string `json:"pushToken,omitempty"`
+	Username string `json:"username" binding:"required"`
 }
 
 var (
-	ErrUserNotFound      = errors.New("user not found")
-	ErrIncorrectPassword = errors.New("incorrect password")
+	ErrUserNotFound            = errors.New("user not found")
+	ErrSomethingWentWrongLogin = errors.New("something went wrong while logging in")
 )
 
-func (us *Client) Login(input *LoginDto) (*domain.User, string, error) {
+func (us *Client) Login(input *LoginDto) (string, string, error) {
 	users, err := us.users.GetFullList(&pocketbase.GetFullListInput[domain.User]{
 		Filter: pocketbase.BuildFilter(
 			"username = {:username}",
@@ -34,40 +33,56 @@ func (us *Client) Login(input *LoginDto) (*domain.User, string, error) {
 		slog.Error(
 			"login get full list failed",
 			"username", input.Username,
-			"trial password", crypto.Obfuscate(input.Password, 5),
 			"error", err,
 		)
-		return nil, "", ErrUserNotFound
+		return "", "", ErrUserNotFound
 	}
 	if len(users) == 0 {
-		return nil, "", ErrUserNotFound
+		return "", "", ErrUserNotFound
 	}
 
 	retrievedUser := users[0]
-	isCorrectPassword := retrievedUser.Compare(input.Password)
-	if !isCorrectPassword {
-		slog.Warn(
-			"login invalid attempt",
-			"username", input.Username,
-			"trial password", crypto.Obfuscate(input.Password, 5),
-			"error", err,
-		)
-		return nil, "", ErrIncorrectPassword
+	token, err := domain.GetToken(&retrievedUser)
+	if err != nil {
+		return "", "", ErrSomethingWentWrongLogin
 	}
 
-	_, err = us.users.UpdateOne(&pocketbase.UpdateOneInput[domain.User]{
-		Id: users[0].Id,
-		Data: domain.User{
-			PushToken: input.PushToken,
-		},
-	})
+	// encrypt token and user
+	marshalled, err := json.Marshal(retrievedUser)
 	if err != nil {
 		slog.Error(
-			"update one with push token and username of users failed",
-			"input dto", input,
+			"failed marshalling user",
 			"err", err,
 		)
+		return "", "", ErrSomethingWentWrongLogin
 	}
-	tk, err := domain.GetToken(&retrievedUser)
-	return &users[0], tk, err
+
+	// encrypting user/token
+	encryptedUser, err := crypto.LongEncryptMessageRSA(
+		string(marshalled),
+		retrievedUser.PublicKey,
+	)
+	if err != nil {
+		slog.Error(
+			"failed encrypting marshalled user",
+			"err", err,
+		)
+		return "", "", ErrSomethingWentWrongLogin
+	}
+
+	encryptedToken, err := crypto.LongEncryptMessageRSA(
+		token,
+		retrievedUser.PublicKey,
+	)
+	if err != nil {
+		slog.Error(
+			"failed encrypting token",
+			"err", err,
+			"tk", token,
+			"user id", retrievedUser.Id,
+			"public key", retrievedUser.PublicKey,
+		)
+		return "", "", ErrSomethingWentWrongLogin
+	}
+	return encryptedUser, encryptedToken, nil
 }
