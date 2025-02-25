@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { Alert } from "react-native";
 import { getNotificationsToken } from "@/api/notifications";
-import { baseUrl, buildHeaders } from "@/constants/api";
+import { baseUrl, buildHeaders, checkApi } from "@/constants/api";
 import { ZustandStorage } from "./ZustandStorage";
 import { decryptLongMessageRSA } from "./useKeys";
 
@@ -26,6 +26,8 @@ export interface UserStore {
 	) => Promise<{ user: User; token: string }>;
 	logout: () => void;
 	deleteAccount: (token: string) => Promise<void>;
+
+	debug: () => Promise<void>;
 }
 
 export const useUser = create(
@@ -34,13 +36,17 @@ export const useUser = create(
 			token: "",
 			user: null,
 			isLoading: false,
-
+			debug: async () => {
+				console.log("debug action pressed");
+				set({ isLoading: false });
+			},
 			isLoggedIn: () => {
 				const { token, user } = get();
 				return token !== "" && user !== null;
 			},
 			login: async (username, privateKey) => {
 				try {
+					await checkApi();
 					set({ isLoading: true });
 					let pushToken: string | undefined;
 					try {
@@ -73,15 +79,16 @@ export const useUser = create(
 					set({
 						token,
 						user,
+						isLoading: false,
 					});
 				} catch (err: any) {
-					Alert.alert("Error occurred", err.message);
-				} finally {
 					set({ isLoading: false });
+					Alert.alert("Error occurred", err.message);
 				}
 			},
 			register: async (username, publicKey, privateKey) => {
 				try {
+					await checkApi();
 					set({ isLoading: true });
 					let pushToken: string | undefined;
 					try {
@@ -123,6 +130,10 @@ export const useUser = create(
 						user,
 					};
 				} catch (err: any) {
+					console.log(err);
+					set({
+						isLoading: false,
+					});
 					Alert.alert("Error occurred", err.message);
 					throw err;
 				}
@@ -135,6 +146,7 @@ export const useUser = create(
 			},
 			deleteAccount: async (token) => {
 				try {
+					await checkApi();
 					set({ isLoading: true });
 					const response = await fetch(`${baseUrl}/auth/account`, {
 						method: "DELETE",
@@ -145,10 +157,10 @@ export const useUser = create(
 						throw new Error(message);
 					}
 					get().logout();
-				} catch (err: any) {
-					Alert.alert("Error occurred", err.message);
-				} finally {
 					set({ isLoading: false });
+				} catch (err: any) {
+					set({ isLoading: false });
+					Alert.alert("Error occurred", err.message);
 				}
 			},
 		}),

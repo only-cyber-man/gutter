@@ -46,67 +46,125 @@ func (us *Client) Register(input *RegisterDto) (string, string, error) {
 	if len(users) > 0 {
 		return "", "", ErrUsernameAlreadyTaken
 	}
-	user, err := us.users.CreateOne(&pocketbase.CreateOneInput[domain.User]{
-		Data: domain.User{
-			Username:  input.Username,
-			PushToken: input.PushToken,
-			PublicKey: input.PublicKey,
-		},
+
+	// actual creating the user
+	tx := utils.CreateTransaction()
+	var user *domain.User
+	err = tx.A(func() error {
+		_user, err := us.users.CreateOne(&pocketbase.CreateOneInput[domain.User]{
+			Data: domain.User{
+				Username:  input.Username,
+				PushToken: input.PushToken,
+				PublicKey: input.PublicKey,
+			},
+		})
+		if err == nil {
+			user = _user
+		}
+		return err
+	}, func() error {
+		return us.users.DeleteOne(&pocketbase.DeleteOneInput{
+			Id: user.Id,
+		})
 	})
 	if err != nil {
-		slog.Warn(
-			"create user failed",
-			"err", err,
-			"user", user,
-		)
-		return "", "", err
-	}
-	token, err := domain.GetToken(user)
-	if err != nil {
+		reason, rollbackErrors := tx.R(err)
 		slog.Error(
-			"get token failed",
-			"err", err,
-			"user", user,
+			"error occurred when creating a friendship record",
+			"main reason", reason,
+			"rollback errors", rollbackErrors,
+			"input", input,
+		)
+		return "", "", ErrSomethingWentWrongRegister
+	}
+
+	// now we get auth token for the new user
+	var token string
+	err = tx.A(func() error {
+		_token, err := domain.GetToken(user)
+		if err == nil {
+			token = _token
+		}
+		return err
+	}, func() error { return nil })
+	if err != nil {
+		reason, rollbackErrors := tx.R(err)
+		slog.Error(
+			"error occurred when getting token",
+			"main reason", reason,
+			"rollback errors", rollbackErrors,
+			"input", input,
+			"user", user.Username,
 		)
 		return "", "", ErrSomethingWentWrongRegister
 	}
 
 	// encrypt token and user
-	marshalled, err := json.Marshal(user)
+	var marshalled []byte
+	err = tx.A(func() error {
+		_marshalled, err := json.Marshal(user)
+		if err == nil {
+			marshalled = _marshalled
+		}
+		return err
+	}, func() error { return nil })
 	if err != nil {
+		reason, rollbackErrors := tx.R(err)
 		slog.Error(
-			"failed marshalling user",
-			"err", err,
+			"error occurred when marshalling user",
+			"main reason", reason,
+			"rollback errors", rollbackErrors,
+			"input", input,
+			"user", user.Username,
 		)
 		return "", "", ErrSomethingWentWrongRegister
 	}
 
-	// encrypting user/token
-	encryptedUser, err := crypto.LongEncryptMessageRSA(
-		string(marshalled),
-		user.PublicKey,
-	)
+	var encryptedUser string
+	err = tx.A(func() error {
+		_encryptedUser, err := crypto.LongEncryptMessageRSA(
+			string(marshalled),
+			user.PublicKey,
+		)
+		if err == nil {
+			encryptedUser = _encryptedUser
+		}
+		return err
+	}, func() error { return nil })
 	if err != nil {
+		reason, rollbackErrors := tx.R(err)
 		slog.Error(
-			"failed encrypting marshalled user",
-			"err", err,
+			"error occurred when encrypting marshalled user",
+			"main reason", reason,
+			"rollback errors", rollbackErrors,
+			"input", input,
+			"user", user.Username,
 		)
 		return "", "", ErrSomethingWentWrongRegister
 	}
 
-	encryptedToken, err := crypto.LongEncryptMessageRSA(
-		token,
-		user.PublicKey,
-	)
+	var encryptedToken string
+	err = tx.A(func() error {
+		_encryptedToken, err := crypto.LongEncryptMessageRSA(
+			token,
+			user.PublicKey,
+		)
+		if err == nil {
+			encryptedToken = _encryptedToken
+		}
+		return err
+	}, func() error { return nil })
 	if err != nil {
+		reason, rollbackErrors := tx.R(err)
 		slog.Error(
-			"failed encrypting token",
-			"err", err,
-			"tk", token,
-			"user id", user.Id,
-			"public key", user.PublicKey,
+			"error occurred when encrypting token",
+			"main reason", reason,
+			"rollback errors", rollbackErrors,
+			"input", input,
+			"user", user.Username,
 		)
 		return "", "", ErrSomethingWentWrongRegister
 	}
+
 	return encryptedUser, encryptedToken, nil
 }

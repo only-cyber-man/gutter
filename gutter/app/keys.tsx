@@ -1,4 +1,4 @@
-import { KeyList } from "@/components/keys/KeyList";
+import { UserKeyList } from "@/components/keys/UserKeyList";
 import { View } from "@/components/Themed";
 import { Stack } from "expo-router";
 
@@ -13,7 +13,7 @@ export default function Page() {
 					title: "user keys",
 				}}
 			/>
-			<KeyList />
+			<UserKeyList />
 		</View>
 	);
 }

@@ -35,7 +35,7 @@ export const Colors = {
 		text: "#fff",
 		background: "#000",
 		buttonBackground: ColorValues.DarkBlue,
-		buttonText: "#000",
+		buttonText: "#fff",
 		tint: tintColorDark,
 		tabIconDefault: "#ccc",
 		tabIconSelected: tintColorDark,

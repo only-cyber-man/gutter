@@ -6,7 +6,7 @@ import { useUser } from "@/hooks/useUser";
 
 export const AuthBox = () => {
 	const { saveUserPair, userKeys, uploadNewUserPair } = useKeys();
-	const { login, register, isLoading } = useUser();
+	const { login, register, isLoading, debug } = useUser();
 	const [username, setUsername] = useState("");
 
 	return (
@@ -15,6 +15,9 @@ export const AuthBox = () => {
 				padding: 24,
 			}}
 		>
+			<Button onPress={debug}>
+				<ButtonText>test</ButtonText>
+			</Button>
 			<TextInput
 				placeholder="username..."
 				textContentType="username"

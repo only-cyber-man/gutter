@@ -3,7 +3,7 @@ import { Button, ButtonText, Text, XStack, YStack } from "../Themed";
 import { useKeys } from "../../hooks/useKeys";
 import { ColorValues } from "../../constants/Colors";
 
-export const KeyList = () => {
+export const UserKeyList = () => {
 	const { userKeys, isLoading, deleteUserPair, downloadUserPair } = useKeys();
 
 	const renderItem = ({

@@ -26,6 +26,7 @@
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="gutter"/>
         <data android:scheme="pl.cyberman.gutter"/>
+        <data android:scheme="exp+gutter"/>
       </intent-filter>
     </activity>
   </application>
